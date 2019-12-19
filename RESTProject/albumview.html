@@ -1,0 +1,262 @@
+<html>
+    <head>
+        <title> View Books</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+       
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <style>
+            body{
+                background-color: darkkhaki;
+            }
+            .main{
+                overflow-x: auto; 
+            }             
+            h1, h2, .button, #createUpdateForm{
+                text-align: center;
+                margin: 15px;
+            }
+            th:hover {background-color:#9aac69b2;}
+            button:hover {background-color:#9aac69b2;}
+            table{
+                width:70%;
+                margin-left:auto; 
+                margin-right:auto;
+                border-collapse: collapse;
+                border: 1px solid white;
+                font-size: 18px;
+                font-style: italic;
+            }
+            th{
+                border: 2px solid #ddd;
+                padding: 15px;
+                background-color: darkolivegreen;
+                color: white; 
+                font-weight: lighter;               
+            }
+            input{
+                margin: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="main">
+        <h1>Albums</h1>
+        <h2>To create:</h2>
+        <div class="button"> <button id="showCreateButton" onclick="showCreate()">Create</button></div>
+        <div class="table">
+            <table id="albumTable">
+                <tr>
+                    <th>id</th>
+                    <th>rapper</th>
+                    <th>album</th>
+                    <th>price</th>
+                    <th>Update</th>
+                    <th>Delete</th>
+                </tr>
+            </table>
+        </div>
+        </div>
+        <div id='createUpdateForm' style="display: none">
+                <h3><span id="createLabel">Create an</span> <span id="updateLabel">update</span> Album</h3>
+                <input type="hidden" name="id"/>
+                rapper<input type="text" name="rapper"/><br/>
+                album<input type="text" name="album"/><br/>
+                price<input type="number" name="price"/><br/>
+                <span><button id="doCreateButton" onclick="doCreate()">Create</button></span>
+                <span><button id="doUpdateButton" onclick="doUpdate()">Update</button></span>
+                <span><button id="goBackButton" onclick="doBack()">Back</button></span>
+        </div>
+    </body>
+    <script>
+    function showCreate(){
+        document.getElementById('showCreateButton').style.display="none"
+        document.getElementById('albumTable').style.display="none"
+        document.getElementById('createUpdateForm').style.display="block"
+        document.getElementById('createLabel').style.display="inline"
+        document.getElementById('updateLabel').style.display="none"
+        document.getElementById('doCreateButton').style.display="inline"
+        document.getElementById('doUpdateButton').style.display="none"
+    }
+    function showViewAll(){
+        document.getElementById('showCreateButton').style.display="inline"
+        document.getElementById('albumTable').style.display="table"
+        document.getElementById('createUpdateForm').style.display="none"
+    }
+    function showUpdate(buttonElement){
+        document.getElementById('showCreateButton').style.display="none"
+        document.getElementById('albumTable').style.display="none"
+        document.getElementById('createUpdateForm').style.display="block"
+        document.getElementById('createLabel').style.display="none"
+        document.getElementById('updateLabel').style.display="inline"
+        document.getElementById('doCreateButton').style.display="none"
+        document.getElementById('doUpdateButton').style.display="inline"
+        var rowElement = buttonElement.parentNode.parentNode
+        
+        
+        var album = getAlbumFromRow(rowElement)
+        populateFormWithAlbum(album)
+    }
+    function doCreate(){
+        var form = document.getElementById('createUpdateForm')
+        var album = {}
+       
+        album.rapper = form.querySelector('input[name="rapper"]').value
+        album.album = form.querySelector('input[name="album"]').value
+        album.price = form.querySelector('input[name="price"]').value
+        console.log(JSON.stringify(album))
+        createAlbumAjax(album)  
+    }
+    function doUpdate(){
+        var album = getAlbumFromForm();
+        var rowElement = document.getElementById(album.id);
+        updateAlbumAjax(album);
+        setAlbumInRow(rowElement,album);
+       
+        clearForm();
+        showViewAll();
+    }
+    function doDelete(r){
+        var tableElement = document.getElementById('albumTable');
+        var rowElement = r.parentNode.parentNode;
+        var index = rowElement.rowIndex;
+        deleteAlbumAjax(rowElement.getAttribute("id"));
+        tableElement.deleteRow(index);
+    }
+    function doBack(){
+        showViewAll();        
+    }
+    function addAlbumToTable(album){
+        var tableElement = document.getElementById('albumTable')
+        var rowElement = tableElement.insertRow(-1)
+        rowElement.setAttribute('id',album.id)
+        var cell1 = rowElement.insertCell(0);
+        cell1.innerHTML = album.id
+        var cell2 = rowElement.insertCell(1);
+        cell2.innerHTML = album.rapper
+        var cell3 = rowElement.insertCell(2);
+        cell3.innerHTML = album.album
+        var cell4 = rowElement.insertCell(3);
+        cell4.innerHTML = album.price
+        var cell5 = rowElement.insertCell(4);
+        cell5.innerHTML = '<button onclick="showUpdate(this)">Update</button>'
+        var cell6 = rowElement.insertCell(5);
+        cell6.innerHTML = '<button onclick=doDelete(this)>Delete</button>'
+    }
+    function clearForm(){
+        var form = document.getElementById('createUpdateForm')
+        form.querySelector('input[name="rapper"]').value=''
+        form.querySelector('input[name="album"]').value=''
+        form.querySelector('input[name="price"]').value=''
+    }
+    function getAlbumFromRow(rowElement){
+        var album ={}
+        album.id  = rowElement.getAttribute('id')
+        album.rapper = rowElement.cells[1].firstChild.textContent
+        album.album = rowElement.cells[2].firstChild.textContent
+        album.price = parseInt(rowElement.cells[3].firstChild.textContent,10)
+        return album
+    }
+    function setAlbumInRow(rowElement, album){
+        rowElement.cells[0].firstChild.textContent= album.id  
+        rowElement.cells[1].firstChild.textContent= album.rapper 
+        rowElement.cells[2].firstChild.textContent= album.album
+        rowElement.cells[3].firstChild.textContent= album.price
+    }
+    function populateFormWithAlbum(album){
+        var form = document.getElementById('createUpdateForm')
+        form.querySelector('input[name="id"]').disabled = true
+        form.querySelector('input[name="id"]').value  = album.id
+        form.querySelector('input[name="rapper"]').value= album.rapper
+        form.querySelector('input[name="album"]').value= album.album
+        form.querySelector('input[name="price"]').value= album.price
+        return album
+    }
+    function getAlbumFromForm(){
+        var form = document.getElementById('createUpdateForm')
+        var album = {}
+        album.id = form.querySelector('input[name="id"]').value
+        album.rapper = form.querySelector('input[name="rapper"]').value
+        album.album = form.querySelector('input[name="album"]').value
+        album.price = parseInt(form.querySelector('input[name="price"]').value,10)
+        console.log(JSON.stringify(album))
+        return album
+    }
+    function getAllAjax(){
+        $.ajax({
+            "url": "http://127.0.0.1:5000/RapAlbums",
+            "method":"GET",
+            "data":"",
+            "dataType": "JSON",
+            "success":function(result){
+                //console.log(result);
+                for (album of result){
+                    addAlbumToTable(album);
+                }
+                
+            },
+            "error":function(xhr,status,error){
+                console.log("error: "+status+" msg:"+error);
+            }
+        });
+    }
+    function createAlbumAjax(album){
+        
+        console.log(JSON.stringify(album));
+        $.ajax({
+            "url": "http://127.0.0.1:5000/RapAlbums",
+            "method":"POST",
+            "data":JSON.stringify(album),
+            "dataType": "JSON",
+            contentType: "application/json; charset=utf-8",
+            "success":function(result){
+                //console.log(result);/
+                album.id = result.id
+                addAlbumToTable(album)
+                clearForm()
+                showViewAll()
+            },
+            "error":function(xhr,status,error){
+                console.log("error: "+status+" msg:"+error);
+            }
+        });
+    }
+    function updateAlbumAjax(album){
+        
+        console.log(JSON.stringify(album));
+        $.ajax({
+            "url": "http://127.0.0.1:5000/RapAlbums/"+encodeURI(album.id),
+            "method":"PUT",
+            "data":JSON.stringify(album),
+            "dataType": "JSON",
+            contentType: "application/json; charset=utf-8",
+            "success":function(result){
+               // console.log(result);
+                  
+            },
+            "error":function(xhr,status,error){
+                console.log("error: "+status+" msg:"+error);
+            }
+        });
+    }
+    function deleteAlbumAjax(id){
+        
+        $.ajax({
+            "url": "http://127.0.0.1:5000/RapAlbums/"+encodeURI(id),
+            "method":"DELETE",
+            "data":"",
+            "dataType": "JSON",
+            contentType: "application/json; charset=utf-8",
+            "success":function(result){
+                //console.log(result);
+                  
+            },
+            "error":function(xhr,status,error){
+                console.log("error: "+status+" msg:"+error);
+            }
+        });
+    }
+    getAllAjax();
+  
+    
+    </script>
+</html>
